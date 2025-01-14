@@ -1,11 +1,15 @@
 import http from 'k6/http';
+import { fs } from 'k6/fs';
 import { Trend } from 'k6/metrics';
 import { group, check, sleep } from "k6";
 import { randomString } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 
-const token = open('/tmp/token');
-const BASE_URL = `${__ENV.BASE_URL}`;
+const formattedStartTime = new Date().getTime();
+const tokenPath = __ENV.TOKEN_PATH || '/tmp/token';
+const token = fs.readFileSync(tokenPath, 'utf-8');
+const outputPath = __ENV.OUTPUT_PATH || '/workspace/output.json';
+const BASE_URL = __ENV.BASE_URL.trim();
 const SLEEP_DURATION = 0.2;
 const listTrend = new Trend('List_API');
 const postTrend = new Trend('POST_API');
@@ -27,18 +31,17 @@ export const options = {
     POST_API: ['med<10'],
     PATCH_API: ['med<20'],
     GET_ID_API: ['med<10'],
-  },  
+  },
 };
 
 
 export function handleSummary(data) {
-  let formattedStartTime = Math.trunc((new Date().getTime()-30870.873144));
   let formattedEndTime = new Date().getTime();
   data.startTime = formattedStartTime;
   data.endTime = formattedEndTime;
   data["$schema"] = "uri:k6:0.1";
   return {
-    '/workspace/output.json': JSON.stringify(data), //the default data object
+    `${outputPath}`: JSON.stringify(data), //the default data object
   };
 }
 
@@ -57,9 +60,10 @@ export default function () {
         let page = ''; // specify value as there is no example value for this parameter in OpenAPI spec
         let fields = ''; // specify value as there is no example value for this parameter in OpenAPI spec
 
-        // Request No. 1: 
+        // Request No. 1:
         {
             let url = BASE_URL + `/api/rh-trex/v1/dinosaurs?page=${page}&size=${size}&search=${search}&orderBy=${orderBy}&fields=${fields}`;
+            console.log(`Request ${url} - ${options}`); 
             let request = http.get(url,options);
 
             check(request, {
@@ -88,7 +92,7 @@ export default function () {
 
       group("/api/rh-trex/v1/dinosaurs/{id}", () => {
 
-        // Request No. 1: 
+        // Request No. 1:
         {
             let url = BASE_URL + `/api/rh-trex/v1/dinosaurs/${id}`;
             let request = http.get(url,options);

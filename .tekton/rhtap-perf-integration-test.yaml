@@ -184,8 +184,15 @@ spec:
                 resources:
                   requests:
                     storage: 1Gi
-                storageClassName: ""
             EOF
+
+            # Deploy files needed to run the test
+            wget -O /tmp/script.js https://raw.githubusercontent.com/jhutar/rh-trex/main/.tekton/rhtap-perf-k6-test.js
+            wget -O /tmp/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.65/ocm-linux-amd64
+            chmod +x /tmp/ocm
+            /tmp/ocm login --token=${OCM_TOKEN} --url=$(params.url)
+            /tmp/ocm token > /tmp/token
+            oc create configmap test-runner --from-file=script=/tmp/script.js --from-file=token=/tmp/token
 
             # Run the test
             cat <<EOF | oc apply -f -
@@ -201,36 +208,31 @@ spec:
                   - name: data
                     persistentVolumeClaim:
                       claimName: data-pvc
+                  - name: config
+                    configMap:
+                      name: test-runner
                 containers:
                   - name: test-runner
                     image: docker.io/grafana/k6:latest
                     env:
                       - name: BASE_URL
                         value: "$(params.url)"
-                      - name: OCM_TOKEN
-                        value: "${OCM_TOKEN}"
+                      - name: TOKEN_PATH
+                        value: "/etc/config/token"
                     volumeMounts:
                       - name: data
                         mountPath: /workspace
-                    command:
-                      - "/bin/bash"
-                      - "-x"
-                      - "-c"
-                      - |
-                        echo "The endpoint outputs the following:"
-                        curl -v -s "${BASE_URL}"
-                        wget -O /tmp/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.65/ocm-linux-amd64
-                        chmod +x /tmp/ocm
-                        /tmp/ocm login --token=${OCM_TOKEN} --url=${BASE_URL}
-                        wget -O /tmp/script.js https://raw.githubusercontent.com/yogananth-subramanian/rh-trex/main/.tekton/rhtap-perf-k6-test.js
-                        /tmp/ocm token > /tmp/token
-                        k6 run /tmp/script.js
-                        cat /workspace/output.json
+                      - name: config
+                        mountPath: /etc/config
+                    args:
+                      - "run"
+                      - "/etc/config/script"
             EOF
 
             # Wait for test pod to finish
-            oc get pods
-            kubectl wait --for=condition=Ready --timeout=60s pod --selector app=test-runner
+            oc wait --for=condition=Ready --timeout=100s pod --selector app=test-runner
+            oc get pod --selector app=trex -o yaml
+            oc wait --for=condition=Ready=false --timeout=600s pod --selector app=test-runner
             oc logs -f --all-containers=true --ignore-errors=true --max-log-requests=10 --prefix=true --previous=false --timestamps=true --selector app=test-runner
         - image: quay.io/yogananth_subramanian/curl-yq-jq
           name: check-regression
