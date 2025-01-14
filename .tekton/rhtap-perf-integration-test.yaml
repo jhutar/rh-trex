@@ -152,6 +152,11 @@ spec:
         - image: registry.redhat.io/openshift4/ose-cli:latest
           name: run-perf
           env:
+            - name: KUBECONFIG_VALUE
+              valueFrom:
+                secretKeyRef:
+                  name: "$(tasks.provision-env.results.secretRef)"
+                  key: kubeconfig
             # Our application uses OCM for authentication, so we need this
             # https://console.redhat.com/openshift/token
             - name: OCM_TOKEN
@@ -161,6 +166,10 @@ spec:
                   key: ocmtoken
           script: |
             #!/usr/bin/env bash
+
+            # Expose KUBECONFIG for test namespace
+            cat <<< "$KUBECONFIG_VALUE" > /tmp/cfg
+            export KUBECONFIG=/tmp/cfg
 
             cat <<EOF | oc apply -f -
               ---
@@ -216,21 +225,16 @@ spec:
         - image: quay.io/yogananth_subramanian/curl-yq-jq
           name: check-regression
           env:
-            - name: HORREUM_PASSWORD
+            - name: HORREUM_API_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: horreum
-                  key: horreum_password
+                  name: my-horreum-secrets
+                  key: horreum_api_token
             - name: HORREUM_URI
               valueFrom:
                 secretKeyRef:
-                  name: horreum
+                  name: my-horreum-secrets
                   key: horreum_uri
-            - name: HORREUM_USER
-              valueFrom:
-                secretKeyRef:
-                  name: horreum
-                  key: horreum_user
           script: |
             set -xv
             echo "Transform result to json format"
