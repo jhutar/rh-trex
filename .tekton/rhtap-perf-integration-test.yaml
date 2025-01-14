@@ -230,6 +230,7 @@ spec:
 
             # Wait for test pod to finish
             oc get pods
+            kubectl wait --for=condition=Ready --timeout=60s pod --selector app=test-runner
             oc logs -f --all-containers=true --ignore-errors=true --max-log-requests=10 --prefix=true --previous=false --timestamps=true --selector app=test-runner
         - image: quay.io/yogananth_subramanian/curl-yq-jq
           name: check-regression
