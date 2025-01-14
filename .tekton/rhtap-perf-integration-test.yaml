@@ -167,6 +167,7 @@ spec:
             echo "Application endpoint: ${endpoint}"
 
             # Check the application endpoint
+            oc wait --for=condition=Ready --timeout=100s pod --selector app=trex
             echo "The endpoint outputs the following:"
             curl -v -s "${endpoint}"
     - name: perf-benchmark
