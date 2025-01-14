@@ -99,7 +99,8 @@ spec:
           - name: APP_URL
             description: APP URL
         steps:
-        - image: registry.redhat.io/openshift4/ose-cli:latest
+        - name: deploy-app
+          image: registry.redhat.io/openshift4/ose-cli:latest
           env:
             - name: SNAPSHOT
               value: $(params.SNAPSHOT)
@@ -112,15 +113,17 @@ spec:
                 secretKeyRef:
                   name: "$(tasks.provision-env.results.secretRef)"
                   key: kubeconfig
+            # Our application uses OCM for authentication, so we need these
+            # https://console.redhat.com/iam/service-accounts/
             - name: CLIENT_ID
               valueFrom:
                 secretKeyRef:
-                  name: ocm
+                  name: my-ocm-secrets
                   key: client_id
             - name: CLIENT_SEC
               valueFrom:
                 secretKeyRef:
-                  name: ocm
+                  name: my-ocm-secrets
                   key: client_secret
           script: |
             #!/usr/bin/env bash
@@ -207,10 +210,12 @@ spec:
         - image: docker.io/grafana/k6:latest
           name: run-perf
           env:
+            # Our application uses OCM for authentication, so we need this
+            # https://console.redhat.com/openshift/token
             - name: OCM_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: ocm
+                  name: my-ocm-secrets
                   key: ocmtoken
           script: |
             #!/usr/bin/env sh
