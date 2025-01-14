@@ -12,10 +12,6 @@ spec:
       name: SNAPSHOT
       default: '{"components": [{"name":"test-app", "containerImage": "quay.io/example/repo:latest"}]}'
       type: string
-    - description: 'Namespace where the application is running'
-      name: NAMESPACE
-      default: "default"
-      type: string
     - description: 'Application endpoint port'
       name: PORT
       default: "8000"
@@ -81,17 +77,12 @@ spec:
       params:
         - name: SNAPSHOT
           value: $(params.SNAPSHOT)
-        - name: NAMESPACE
-          value: $(params.NAMESPACE)
         - name: PORT
           value: $(params.PORT)
       taskSpec:
         params:
           - name: SNAPSHOT
             description: Expected output of the application endpoint
-          - default: 'default'
-            name: NAMESPACE
-            description: Namespace of the application under test
           - name: PORT
             description: Application endpoint Port
         results:
@@ -103,8 +94,6 @@ spec:
           env:
             - name: SNAPSHOT
               value: $(params.SNAPSHOT)
-            - name: NAMESPACE
-              value: $(params.NAMESPACE)
             - name: PORT
               value: $(params.PORT)
             - name: KUBECONFIG_VALUE
