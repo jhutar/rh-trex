@@ -135,6 +135,7 @@ spec:
             export KUBECONFIG=/tmp/cfg
 
             # Clone application repository (we expect exactly one component)
+            echo -e "Snapshot: ${SNAPSHOT}"
             REPO_TARGET="/tmp/rh-trex"
             REPO_URL=$(echo $SNAPSHOT | jq -r '.components[0] | .source.git.url')
             REPO_IMG=$(echo $SNAPSHOT | jq -r '.components[0] | .containerImage')
@@ -183,16 +184,15 @@ spec:
             oc expose --kubeconfig /tmp/cfg service trex
             oc get --kubeconfig /tmp/cfg all
 
-            # Get the route for the application endpoint
-            ROUTE_NAME=$(oc get --kubeconfig /tmp/cfg routes trex -o name)
-            HOST=$(oc get --kubeconfig /tmp/cfg "${ROUTE_NAME}" -o jsonpath={.spec.host})
-            echo -n ${HOST} | tee $(results.APP_URL.path)
-            echo "Found target host ${HOST}"
+            # Return the service for the application endpoint
+            namespace="$( oc config view --minify -o jsonpath='{..namespace}' )"
+            endpoint="trex.${namespace}.svc.cluster.local"
+            echo "${endpoint}" | tee $(results.APP_URL.path)
+            echo "Application endpoint: ${endpoint}"
 
             # Check the application endpoint
-            ENDPOINT_OUTPUT=$(curl -k http://${HOST}:${PORT})
-            echo -e "The endpoint outputs the following:\n ${ENDPOINT_OUTPUT}"
-            echo -e "Snapshot:\n ${SNAPSHOT}"
+            echo "The endpoint outputs the following:"
+            curl "http://${endpoint}:${PORT}"
     - name: perf-benchmark
       params:
         - name: url
