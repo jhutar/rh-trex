@@ -49,7 +49,7 @@ db_user:=trex
 db_password:=foobar-bizz-buzz
 db_password_file=${PWD}/secrets/db.password
 db_sslmode:=disable
-db_image?=docker.io/library/postgres:14.2
+db_image?=docker.io/library/postgres:14.15
 
 # Log verbosity level
 glog_v:=10
