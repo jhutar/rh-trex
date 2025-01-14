@@ -18,7 +18,7 @@ spec:
       type: string
     - description: 'Application endpoint port'
       name: PORT
-      default: ""
+      default: "8000"
       type: string
     - description: 'Horreum test name'
       name: HR_TEST_NAME
@@ -92,8 +92,7 @@ spec:
           - default: 'default'
             name: NAMESPACE
             description: Namespace of the application under test
-          - default: ""
-            name: PORT
+          - name: PORT
             description: Application endpoint Port
         results:
           - name: APP_URL
