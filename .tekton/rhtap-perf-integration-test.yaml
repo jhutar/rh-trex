@@ -162,7 +162,7 @@ spec:
           - name: test_name
           - name: reg_var
         steps:
-        - image: docker.io/grafana/k6:latest
+        - image: registry.redhat.io/openshift4/ose-cli:latest
           name: run-perf
           env:
             # Our application uses OCM for authentication, so we need this
@@ -173,18 +173,57 @@ spec:
                   name: my-ocm-secrets
                   key: ocmtoken
           script: |
-            #!/usr/bin/env sh
-            export
-            echo "Transform result to json format"
-            wget -O /tmp/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.65/ocm-linux-amd64
-            chmod +x /tmp/ocm
-            echo ${OCM_TOKEN}
-            /tmp/ocm login --token=${OCM_TOKEN} --url=$(params.url)
-            export BASE_URL=$(params.url)
-            wget -O /tmp/script.js https://raw.githubusercontent.com/yogananth-subramanian/rh-trex/main/.tekton/rhtap-perf-k6-test.js
-            echo -n `/tmp/ocm token`>/tmp/token
-            k6 run /tmp/script.js
-            cat /workspace/output.json
+            #!/usr/bin/env bash
+
+            cat <<EOF | oc apply -f -
+              ---
+              apiVersion: v1
+              kind: PersistentVolumeClaim
+              metadata:
+                name: data-pvc
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                volumeMode: Filesystem
+                resources:
+                  requests:
+                    storage: 1Gi
+                storageClassName: ""
+              ---
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: test-runner
+                labels:
+                  app: test-runner
+              spec:
+                containers:
+                  - name: test-runner
+                    image: docker.io/grafana/k6:latest
+                    command: ["/bin/bash", "-c"]
+                    env:
+                      OCM_URL: "$(params.url)"
+                      OCM_TOKEN: "${OCM_TOKEN}"
+                    args:
+                      - |
+                        wget -O /tmp/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.65/ocm-linux-amd64
+                        chmod +x /tmp/ocm
+                        /tmp/ocm login --token=${OCM_TOKEN} --url=${OCM_URL}
+                        export BASE_URL=${OCM_URL}
+                        wget -O /tmp/script.js https://raw.githubusercontent.com/yogananth-subramanian/rh-trex/main/.tekton/rhtap-perf-k6-test.js
+                        echo -n `/tmp/ocm token`>/tmp/token
+                        k6 run /tmp/script.js
+                        cat /workspace/output.json
+                    volumeMounts:
+                      - name: data
+                        mountPath: /workspace
+                volumes:
+                  - name: data
+                    persistentVolumeClaim:
+                      claimName: data-pvc
+            EOF
+            oc get pods
+            oc logs -f --all-containers=true --ignore-errors=true --max-log-requests=10 --prefix=true --previous=false --timestamps=true --selector app=test-runner
         - image: quay.io/yogananth_subramanian/curl-yq-jq
           name: check-regression
           env:
