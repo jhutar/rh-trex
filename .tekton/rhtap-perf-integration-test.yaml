@@ -22,29 +22,20 @@ spec:
       type: string
   tasks:
     - name: provision-env
-      taskSpec:
-        results:
-          - name: secretRef
-            description:
-              SecretRef is the name of the secret with a SA token that has admin-like
-              (or whatever we set in the tier template) permissions in the namespace
-            type: string
-        steps:
-          - name: provision-eaas-space
-            taskRef:
-              resolver: git
-              params:
-                - name: url
-                  value: https://github.com/konflux-ci/build-definitions.git
-                - name: revision
-                  value: main
-                - name: pathInRepo
-                  value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
-            params:
-              - name: ownerName
-                value: $(context.pipelineRun.name)
-              - name: ownerUid
-                value: $(context.pipelineRun.uid)
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/build-definitions.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
+      params:
+        - name: ownerName
+          value: $(context.pipelineRun.name)
+        - name: ownerUid
+          value: $(context.pipelineRun.uid)
     - name: deploy-app
       runAfter:
         - provision-env
