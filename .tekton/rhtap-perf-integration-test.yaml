@@ -174,13 +174,13 @@ spec:
 
             # Return the service for the application endpoint
             namespace="$( oc config view --minify -o jsonpath='{..namespace}' )"
-            endpoint="trex.${namespace}.svc.cluster.local"
+            endpoint="http://trex.${namespace}.svc.cluster.local:${PORT}"
             echo "${endpoint}" | tee $(results.APP_URL.path)
             echo "Application endpoint: ${endpoint}"
 
             # Check the application endpoint
             echo "The endpoint outputs the following:"
-            curl -v -s "http://${endpoint}:${PORT}"
+            curl -v -s "${endpoint}"
     - name: perf-benchmark
       params:
         - name: url
@@ -212,8 +212,8 @@ spec:
             wget -O /tmp/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.65/ocm-linux-amd64
             chmod +x /tmp/ocm
             echo ${OCM_TOKEN}
-            /tmp/ocm login --token=${OCM_TOKEN} --url=http://$(params.url)
-            export BASE_URL=http://$(params.url)
+            /tmp/ocm login --token=${OCM_TOKEN} --url=$(params.url)
+            export BASE_URL=$(params.url)
             wget -O /tmp/script.js https://raw.githubusercontent.com/yogananth-subramanian/rh-trex/main/.tekton/rhtap-perf-k6-test.js
             echo -n `/tmp/ocm token`>/tmp/token
             k6 run /tmp/script.js
