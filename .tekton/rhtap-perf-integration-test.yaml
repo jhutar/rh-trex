@@ -171,8 +171,8 @@ spec:
             cat <<< "$KUBECONFIG_VALUE" > /tmp/cfg
             export KUBECONFIG=/tmp/cfg
 
+            # Create PVC we will use to store test results
             cat <<EOF | oc apply -f -
-              ---
               apiVersion: v1
               kind: PersistentVolumeClaim
               metadata:
@@ -185,7 +185,12 @@ spec:
                   requests:
                     storage: 1Gi
                 storageClassName: ""
-              ---
+            EOF
+
+            set -x
+
+            # Run the test
+            cat <<EOF | oc apply -f -
               apiVersion: v1
               kind: Pod
               metadata:
@@ -193,33 +198,39 @@ spec:
                 labels:
                   app: test-runner
               spec:
+                restartPolicy: Never
+                volumes:
+                  - name: data
+                    persistentVolumeClaim:
+                      claimName: data-pvc
                 containers:
                   - name: test-runner
                     image: docker.io/grafana/k6:latest
                     env:
-                      BASE_URL: "$(params.url)"
-                      OCM_TOKEN: "${OCM_TOKEN}"
-                    command: ["/bin/bash", "-c"]
-                    args:
+                      - name: BASE_URL:
+                        value: "$(params.url)"
+                      - name: OCM_TOKEN
+                        value: "${OCM_TOKEN}"
+                    volumeMounts:
+                      - name: data
+                        mountPath: /workspace
+                    command:
+                      - "/bin/bash"
+                      - "-x"
+                      - "-c"
                       - |
-                        export
                         echo "The endpoint outputs the following:"
                         curl -v -s "${BASE_URL}"
                         wget -O /tmp/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.65/ocm-linux-amd64
                         chmod +x /tmp/ocm
                         /tmp/ocm login --token=${OCM_TOKEN} --url=${BASE_URL}
                         wget -O /tmp/script.js https://raw.githubusercontent.com/yogananth-subramanian/rh-trex/main/.tekton/rhtap-perf-k6-test.js
-                        echo -n `/tmp/ocm token`>/tmp/token
+                        /tmp/ocm token > /tmp/token
                         k6 run /tmp/script.js
                         cat /workspace/output.json
-                    volumeMounts:
-                      - name: data
-                        mountPath: /workspace
-                volumes:
-                  - name: data
-                    persistentVolumeClaim:
-                      claimName: data-pvc
             EOF
+
+            # Wait for test pod to finish
             oc get pods
             oc logs -f --all-containers=true --ignore-errors=true --max-log-requests=10 --prefix=true --previous=false --timestamps=true --selector app=test-runner
         - image: quay.io/yogananth_subramanian/curl-yq-jq
