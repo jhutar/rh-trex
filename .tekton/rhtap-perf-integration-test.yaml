@@ -187,8 +187,6 @@ spec:
                 storageClassName: ""
             EOF
 
-            set -x
-
             # Run the test
             cat <<EOF | oc apply -f -
               apiVersion: v1
@@ -207,7 +205,7 @@ spec:
                   - name: test-runner
                     image: docker.io/grafana/k6:latest
                     env:
-                      - name: BASE_URL:
+                      - name: BASE_URL
                         value: "$(params.url)"
                       - name: OCM_TOKEN
                         value: "${OCM_TOKEN}"
