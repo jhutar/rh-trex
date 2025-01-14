@@ -127,6 +127,7 @@ spec:
             oc apply -f /tmp/templates/db-template.json
             oc apply -f /tmp/templates/secrets-template.json
             oc apply -f /tmp/templates/service-template.json
+            oc wait --for=condition=Ready --timeout=100s pod --selector app=trex
             oc get all
 
             # Return the service for the application endpoint
@@ -134,11 +135,6 @@ spec:
             endpoint="http://trex.$(oc project --short).svc.cluster.local:${port}"
             echo "${endpoint}" | tee $(results.APP_URL.path)
             echo "Application endpoint: ${endpoint}"
-
-            #### Check the application endpoint
-            ###oc wait --for=condition=Ready --timeout=100s pod --selector app=trex
-            ###echo "The endpoint outputs the following:"
-            ###curl -v -s "${endpoint}"
     - name: perf-benchmark
       params:
         - name: url
@@ -198,6 +194,8 @@ spec:
                     args:
                       - |
                         export
+                        echo "The endpoint outputs the following:"
+                        curl -v -s "${BASE_URL}"
                         wget -O /tmp/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.65/ocm-linux-amd64
                         chmod +x /tmp/ocm
                         /tmp/ocm login --token=${OCM_TOKEN} --url=${BASE_URL}
