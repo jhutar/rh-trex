@@ -161,9 +161,8 @@ spec:
             oc get all
 
             # Return the service for the application endpoint
-            namespace="$( oc config view --minify -o jsonpath='{..namespace}' )"
-            port="$(oc -n ${namespace} get service/trex -o json | jq '.spec.ports[0].port')"
-            endpoint="http://trex.${namespace}.svc.cluster.local:${port}"
+            port="$(oc get service/trex -o json | jq '.spec.ports[0].port')"
+            endpoint="http://trex.$(oc project --short).svc.cluster.local:${port}"
             echo "${endpoint}" | tee $(results.APP_URL.path)
             echo "Application endpoint: ${endpoint}"
 
