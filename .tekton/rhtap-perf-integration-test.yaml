@@ -191,16 +191,16 @@ spec:
                 containers:
                   - name: test-runner
                     image: docker.io/grafana/k6:latest
-                    command: ["/bin/bash", "-c"]
                     env:
-                      OCM_URL: "$(params.url)"
+                      BASE_URL: "$(params.url)"
                       OCM_TOKEN: "${OCM_TOKEN}"
+                    command: ["/bin/bash", "-c"]
                     args:
                       - |
+                        export
                         wget -O /tmp/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.65/ocm-linux-amd64
                         chmod +x /tmp/ocm
-                        /tmp/ocm login --token=${OCM_TOKEN} --url=${OCM_URL}
-                        export BASE_URL=${OCM_URL}
+                        /tmp/ocm login --token=${OCM_TOKEN} --url=${BASE_URL}
                         wget -O /tmp/script.js https://raw.githubusercontent.com/yogananth-subramanian/rh-trex/main/.tekton/rhtap-perf-k6-test.js
                         echo -n `/tmp/ocm token`>/tmp/token
                         k6 run /tmp/script.js
