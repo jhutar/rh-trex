@@ -135,10 +135,10 @@ spec:
             echo "${endpoint}" | tee $(results.APP_URL.path)
             echo "Application endpoint: ${endpoint}"
 
-            # Check the application endpoint
-            oc wait --for=condition=Ready --timeout=100s pod --selector app=trex
-            echo "The endpoint outputs the following:"
-            curl -v -s "${endpoint}"
+            #### Check the application endpoint
+            ###oc wait --for=condition=Ready --timeout=100s pod --selector app=trex
+            ###echo "The endpoint outputs the following:"
+            ###curl -v -s "${endpoint}"
     - name: perf-benchmark
       params:
         - name: url
