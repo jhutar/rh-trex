@@ -192,7 +192,7 @@ spec:
 
             # Check the application endpoint
             echo "The endpoint outputs the following:"
-            curl "http://${endpoint}:${PORT}"
+            curl -v -s "http://${endpoint}:${PORT}"
     - name: perf-benchmark
       params:
         - name: url
