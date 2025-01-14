@@ -131,7 +131,6 @@ spec:
               j=${i#*/}
               outf=${j%.*}
               oc process \
-                --kubeconfig /tmp/cfg \
                 --filename="$i" \
                 --local=true \
                 --ignore-unknown-parameters=true \
@@ -156,11 +155,11 @@ spec:
             done
 
             # Deploy the application
-            oc apply --kubeconfig /tmp/cfg -f /tmp/templates/db-template.json
-            oc apply --kubeconfig /tmp/cfg -f /tmp/templates/secrets-template.json
-            oc apply --kubeconfig /tmp/cfg -f /tmp/templates/service-template.json
-            oc expose --kubeconfig /tmp/cfg service trex
-            oc get --kubeconfig /tmp/cfg all
+            oc apply -f /tmp/templates/db-template.json
+            oc apply -f /tmp/templates/secrets-template.json
+            oc apply -f /tmp/templates/service-template.json
+            oc expose service trex
+            oc get all
 
             # Return the service for the application endpoint
             namespace="$( oc config view --minify -o jsonpath='{..namespace}' )"
