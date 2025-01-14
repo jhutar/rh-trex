@@ -12,10 +12,6 @@ spec:
       name: SNAPSHOT
       default: '{"components": [{"name":"test-app", "containerImage": "quay.io/example/repo:latest"}]}'
       type: string
-    - description: 'Application endpoint port'
-      name: PORT
-      default: "8000"
-      type: string
     - description: 'Horreum test name'
       name: HR_TEST_NAME
       default: "comp-rh-trex"
@@ -77,14 +73,10 @@ spec:
       params:
         - name: SNAPSHOT
           value: $(params.SNAPSHOT)
-        - name: PORT
-          value: $(params.PORT)
       taskSpec:
         params:
           - name: SNAPSHOT
             description: Expected output of the application endpoint
-          - name: PORT
-            description: Application endpoint Port
         results:
           - name: APP_URL
             description: APP URL
@@ -94,8 +86,6 @@ spec:
           env:
             - name: SNAPSHOT
               value: $(params.SNAPSHOT)
-            - name: PORT
-              value: $(params.PORT)
             - name: KUBECONFIG_VALUE
               valueFrom:
                 secretKeyRef:
@@ -174,7 +164,8 @@ spec:
 
             # Return the service for the application endpoint
             namespace="$( oc config view --minify -o jsonpath='{..namespace}' )"
-            endpoint="http://trex.${namespace}.svc.cluster.local:${PORT}"
+            port="$(oc -n ${namespace} get service/trex -o json | jq '.spec.ports[0].port')"
+            endpoint="http://trex.${namespace}.svc.cluster.local:${port}"
             echo "${endpoint}" | tee $(results.APP_URL.path)
             echo "Application endpoint: ${endpoint}"
 
