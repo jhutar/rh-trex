@@ -158,7 +158,6 @@ spec:
             oc apply -f /tmp/templates/db-template.json
             oc apply -f /tmp/templates/secrets-template.json
             oc apply -f /tmp/templates/service-template.json
-            oc expose service trex
             oc get all
 
             # Return the service for the application endpoint
