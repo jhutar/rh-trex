@@ -261,8 +261,10 @@ spec:
             EOF
 
             # Download result file
+            oc wait --for=condition=Ready --timeout=100s pod/test-server
             oc cp test-server:/workspace/output.json /workspace/output.json
             cat /workspace/output.json
+            oc delete pod/test-server
         - image: quay.io/yogananth_subramanian/curl-yq-jq
           name: check-regression
           env:
