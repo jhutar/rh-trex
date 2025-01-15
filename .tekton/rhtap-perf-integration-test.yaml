@@ -172,8 +172,8 @@ spec:
             export KUBECONFIG=/tmp/cfg
 
             # Create and deploy files needed to run the test
-            wget -O /tmp/script.js https://raw.githubusercontent.com/jhutar/rh-trex/main/.tekton/rhtap-perf-k6-test.js
-            wget -O /tmp/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.65/ocm-linux-amd64
+            wget --no-verbose -O /tmp/script.js https://raw.githubusercontent.com/jhutar/rh-trex/main/.tekton/rhtap-perf-k6-test.js
+            wget --no-verbose -O /tmp/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.65/ocm-linux-amd64
             chmod +x /tmp/ocm
             /tmp/ocm login --token=${OCM_TOKEN} --url=$(params.url)
             /tmp/ocm token > /tmp/token
@@ -230,14 +230,39 @@ spec:
             EOF
 
             # Wait for test pod to start and finish
-            oc get pod
-            oc get PersistentVolumeClaim
-            sleep 10
-            oc get pod
-            oc get PersistentVolumeClaim
             oc wait --for=condition=Ready --timeout=100s pod --selector app=test-runner
+            oc get pod
             oc wait --for=condition=Ready=false --timeout=600s pod --selector app=test-runner
             oc logs --tail=100 --all-containers=true --ignore-errors=true --max-log-requests=10 --prefix=true --previous=false --timestamps=true --selector app=test-runner
+
+            # Run the pod we can copy the results from
+            cat <<EOF | oc apply -f -
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: test-server
+                labels:
+                  app: test-server
+              spec:
+                restartPolicy: Never
+                volumes:
+                  - name: data
+                    persistentVolumeClaim:
+                      claimName: data-pvc
+                containers:
+                  - name: test-server
+                    image: registry.access.redhat.com/ubi9/ubi:latest
+                    volumeMounts:
+                      - name: data
+                        mountPath: /workspace
+                    args:
+                      - "sleep"
+                      - "1000"
+            EOF
+
+            # Download result file
+            oc cp test-server:/workspace/output.json /workspace/output.json
+            cat /workspace/output.json
         - image: quay.io/yogananth_subramanian/curl-yq-jq
           name: check-regression
           env:
