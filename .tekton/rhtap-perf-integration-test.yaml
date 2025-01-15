@@ -21,6 +21,7 @@ spec:
       default: "iteration_duration"
       type: string
   tasks:
+
     - name: provision-env
       taskRef:
         resolver: git
@@ -36,6 +37,7 @@ spec:
           value: $(context.pipelineRun.name)
         - name: ownerUid
           value: $(context.pipelineRun.uid)
+
     - name: deploy-app
       runAfter:
         - provision-env
@@ -135,7 +137,10 @@ spec:
             endpoint="http://trex.$(oc project --short).svc.cluster.local:${port}"
             echo "${endpoint}" | tee $(results.APP_URL.path)
             echo "Application endpoint: ${endpoint}"
+
     - name: perf-benchmark
+      runAfter:
+        - deploy-app
       params:
         - name: url
           value: $(tasks.deploy-app.results.APP_URL)
@@ -265,6 +270,7 @@ spec:
             oc cp test-server:/workspace/output.json /workspace/output.json
             cat /workspace/output.json
             oc delete pod/test-server
+
         - image: quay.io/yogananth_subramanian/curl-yq-jq
           name: check-regression
           env:
@@ -291,8 +297,7 @@ spec:
             varid=$(curl -s -k -X GET  ${HORREUM_URI}'/api/alerting/variables?test='$testid|jq -r --arg regvar "$reg_var" '.[] | select(.name==$regvar)| .id ')
             changes=`curl -s -k -X GET ${HORREUM_URI}'/api/alerting/changes?var='$varid  |jq  '.| length'`
             if [ -z  $changes ] || [ $changes -gt 0  ] ;then echo "Regression check failed";exit 1;fi
-      runAfter:
-        - deploy-app
+
   finally:
     - name: cleanup
       params:
