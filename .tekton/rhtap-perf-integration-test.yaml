@@ -171,6 +171,14 @@ spec:
             cat <<< "$KUBECONFIG_VALUE" > /tmp/cfg
             export KUBECONFIG=/tmp/cfg
 
+            # Create and deploy files needed to run the test
+            wget -O /tmp/script.js https://raw.githubusercontent.com/jhutar/rh-trex/main/.tekton/rhtap-perf-k6-test.js
+            wget -O /tmp/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.65/ocm-linux-amd64
+            chmod +x /tmp/ocm
+            /tmp/ocm login --token=${OCM_TOKEN} --url=$(params.url)
+            /tmp/ocm token > /tmp/token
+            oc create configmap test-runner --from-file=script=/tmp/script.js --from-file=token=/tmp/token
+
             # Create PVC we will use to store test results
             cat <<EOF | oc apply -f -
               apiVersion: v1
@@ -183,16 +191,8 @@ spec:
                 volumeMode: Filesystem
                 resources:
                   requests:
-                    storage: 1Gi
+                    storage: 100Mi
             EOF
-
-            # Deploy files needed to run the test
-            wget -O /tmp/script.js https://raw.githubusercontent.com/jhutar/rh-trex/main/.tekton/rhtap-perf-k6-test.js
-            wget -O /tmp/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.65/ocm-linux-amd64
-            chmod +x /tmp/ocm
-            /tmp/ocm login --token=${OCM_TOKEN} --url=$(params.url)
-            /tmp/ocm token > /tmp/token
-            oc create configmap test-runner --from-file=script=/tmp/script.js --from-file=token=/tmp/token
 
             # Run the test
             cat <<EOF | oc apply -f -
@@ -229,11 +229,15 @@ spec:
                       - "/etc/config/script"
             EOF
 
-            # Wait for test pod to finish
+            # Wait for test pod to start and finish
+            oc get pod
+            oc get PersistentVolumeClaim
+            sleep 10
+            oc get pod
+            oc get PersistentVolumeClaim
             oc wait --for=condition=Ready --timeout=100s pod --selector app=test-runner
-            oc get pod --selector app=trex -o yaml
             oc wait --for=condition=Ready=false --timeout=600s pod --selector app=test-runner
-            oc logs -f --all-containers=true --ignore-errors=true --max-log-requests=10 --prefix=true --previous=false --timestamps=true --selector app=test-runner
+            oc logs --tail=100 --all-containers=true --ignore-errors=true --max-log-requests=10 --prefix=true --previous=false --timestamps=true --selector app=test-runner
         - image: quay.io/yogananth_subramanian/curl-yq-jq
           name: check-regression
           env:
