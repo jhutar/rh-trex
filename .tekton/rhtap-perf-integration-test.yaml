@@ -285,18 +285,26 @@ spec:
                   name: my-horreum-secrets
                   key: horreum_uri
           script: |
-            set -xv
-            echo "Transform result to json format"
-            cat /workspace/output.json
             test_name=$(params.test_name)
             reg_var=$(params.reg_var)
-            KEYCLOAK_URI=$(curl -s -k -X GET  ${HORREUM_URI}/api/config/keycloak|jq -r .url)
-            TOKEN=$(curl -s  -k  ${KEYCLOAK_URI}/realms/horreum/protocol/openid-connect/token   -d "username=$HORREUM_USER"  -d "password=$HORREUM_PASSWORD" -d 'grant_type=password' -d 'client_id=horreum-ui' | jq -r .access_token)
-            curl -k -s -v ${HORREUM_URI}'/api/run/data?start=$.startTime&stop=$.endTime&test='$test_name -X POST -H 'Authorization: Bearer '${TOKEN} -H 'Content-Type: application/json'  -d @/workspace/output.json
-            testid=$(curl -s -k -X GET  ${HORREUM_URI}'/api/test/byName/'$test_name|jq -r .id)
-            varid=$(curl -s -k -X GET  ${HORREUM_URI}'/api/alerting/variables?test='$testid|jq -r --arg regvar "$reg_var" '.[] | select(.name==$regvar)| .id ')
-            changes=`curl -s -k -X GET ${HORREUM_URI}'/api/alerting/changes?var='$varid  |jq  '.| length'`
-            if [ -z  $changes ] || [ $changes -gt 0  ] ;then echo "Regression check failed";exit 1;fi
+            testid=$(curl -s -k -X GET "${HORREUM_URI}/api/test/byName/$test_name" | jq -r .id)
+            varid=$(curl -s -k -X GET "${HORREUM_URI}/api/alerting/variables?test=$testid" | jq -r --arg regvar "$reg_var" '.[] | select(.name==$regvar) | .id')
+
+            # Upload test result to Horreum
+            curl \
+              --insecure \
+              -X POST \
+              -H "Content-Type: application/json" \
+              -H "X-Horreum-API-Key: ${HORREUM_API_TOKEN}" \
+              "${HORREUM_URI}/api/run/data?test=${test_name}&start=.startTime&stop=.endTime" \
+              -d @/workspace/output.json
+
+            # Check if Horreum detected change
+            changes=$(curl -s -k -X GET "${HORREUM_URI}/api/alerting/changes?var=$varid" | jq '. | length')
+            if [ -z $changes ] || [ $changes -gt 0 ]; then
+              echo "Regression check failed"
+              exit 1
+            fi
 
   finally:
     - name: cleanup
@@ -313,8 +321,7 @@ spec:
           name: step1
           script: |
             RESULT="SUCCESS"
-            if [ $(params.aggregateTasksStatus) == "Failed" ]
-            then
+            if [ $(params.aggregateTasksStatus) == "Failed" ]; then
               RESULT="FAILURE"
             fi
             TEST_OUTPUT=$(jq -rc --arg date $(date +%s) --arg RESULT "${RESULT}" --null-input \
