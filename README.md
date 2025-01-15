@@ -237,7 +237,8 @@ Following manual changes are required to run the application successfully:
 - `pkg/db/migrations/migration_structs.go` : Add migration name
 - `test/factories.go` : Add helper functions
 
-Here's a reference MR for the same : https://github.com/openshift-online/rh-trex/pull/25Fri Nov 29 12:21:56 PM CET 2024
+Here's a reference MR for the same : https://github.com/openshift-online/rh-trex/pull/25
+Fri Nov 29 12:21:56 PM CET 2024
 Fri Nov 29 12:44:57 PM CET 2024
 Mon Jan 13 03:09:55 PM CET 2025
 Mon Jan 13 03:18:41 PM CET 2025
