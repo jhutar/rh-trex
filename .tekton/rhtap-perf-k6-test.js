@@ -8,7 +8,6 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 const formattedStartTime = new Date().getTime();
 const tokenPath = __ENV.TOKEN_PATH || '/tmp/token';
 const token = fs.readFileSync(tokenPath, 'utf-8');
-const outputPath = __ENV.OUTPUT_PATH || '/workspace/output.json';
 const BASE_URL = __ENV.BASE_URL.trim();
 const SLEEP_DURATION = 0.2;
 const listTrend = new Trend('List_API');
@@ -41,7 +40,7 @@ export function handleSummary(data) {
   data.endTime = formattedEndTime;
   data["$schema"] = "uri:k6:0.1";
   return {
-    `${outputPath}`: JSON.stringify(data), //the default data object
+    '/workspace/output.json': JSON.stringify(data), //the default data object
   };
 }
 
