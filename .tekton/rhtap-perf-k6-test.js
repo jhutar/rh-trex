@@ -6,7 +6,7 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 
 const formattedStartTime = new Date().getTime();
 const tokenPath = __ENV.TOKEN_PATH || '/tmp/token';
-const token = open(tokenPath);
+const token = open(tokenPath).trim();
 const BASE_URL = __ENV.BASE_URL.trim();
 const SLEEP_DURATION = 0.2;
 const listTrend = new Trend('List_API');
