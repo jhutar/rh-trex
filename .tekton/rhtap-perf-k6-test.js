@@ -1,5 +1,4 @@
 import http from 'k6/http';
-import { fs } from 'k6/fs';
 import { Trend } from 'k6/metrics';
 import { group, check, sleep } from "k6";
 import { randomString } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
@@ -7,7 +6,7 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 
 const formattedStartTime = new Date().getTime();
 const tokenPath = __ENV.TOKEN_PATH || '/tmp/token';
-const token = fs.readFileSync(tokenPath, 'utf-8');
+const token = open(tokenPath);
 const BASE_URL = __ENV.BASE_URL.trim();
 const SLEEP_DURATION = 0.2;
 const listTrend = new Trend('List_API');
